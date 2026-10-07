@@ -24,8 +24,16 @@ export type SearchReplaceTarget = { line: number; column: number; matchLength: n
 // Why: ripgrep's word chars are Unicode \w; plain \w is the fallback when the pattern rejects the u flag.
 const UNICODE_WORD_CHAR = '[\\p{L}\\p{N}\\p{M}_]'
 
+// Why: ripgrep's \z/\A anchors throw under the u flag, and the non-u fallback would
+// then read \z as a literal z. Translate them so the JS regex keeps ripgrep's meaning.
+function translateRipgrepAnchors(source: string): string {
+  return source
+    .replace(/(^|[^\\])((?:\\\\)*)\\z/g, '$1$2$')
+    .replace(/(^|[^\\])((?:\\\\)*)\\A/g, '$1$2^')
+}
+
 function compileRegex(query: SearchReplaceQuery): RegExp {
-  const source = query.useRegex ? query.query : escapeRegex(query.query)
+  const source = query.useRegex ? translateRipgrepAnchors(query.query) : escapeRegex(query.query)
   const flags = query.caseSensitive ? 'g' : 'gi'
   const build = (unicode: boolean): RegExp => {
     const wordChar = unicode ? UNICODE_WORD_CHAR : '\\w'

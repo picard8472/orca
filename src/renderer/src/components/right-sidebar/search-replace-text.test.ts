@@ -65,6 +65,18 @@ describe('replaceInText', () => {
     expect(replaceAll('𐐀ABC', lower).content).toBe('𐐨ABC')
   })
 
+  it('translates ripgrep \\z and \\A anchors instead of misreading them', () => {
+    const end = compileSearchReplace(query({ query: 'foo\\z', useRegex: true }), 'bar', false)
+    expect(replaceAll('foo\nfooz', end)).toEqual({ content: 'bar\nfooz', count: 1 })
+    const start = compileSearchReplace(query({ query: '\\Afoo', useRegex: true }), 'bar', false)
+    expect(replaceAll('foo\nxfoo', start)).toEqual({ content: 'bar\nxfoo', count: 1 })
+  })
+
+  it('leaves an escaped \\\\z literal alone', () => {
+    const literal = compileSearchReplace(query({ query: '\\\\z', useRegex: true }), 'X', false)
+    expect(replaceAll('a\\zb', literal)).toEqual({ content: 'aXb', count: 1 })
+  })
+
   it('keeps matches on one line and preserves CRLF endings', () => {
     const compiled = compileSearchReplace(query({ query: 'a\\s+b', useRegex: true }), 'X', false)
     expect(replaceAll('a\r\nb a  b\r\n', compiled)).toEqual({
