@@ -58,6 +58,13 @@ describe('replaceInText', () => {
     expect(replaceAll('key=value', compiled).content).toBe('KEY\tValue$\nkey=value')
   })
 
+  it('applies \\u and \\l to astral code points without splitting surrogate pairs', () => {
+    const upper = compileSearchReplace(query({ query: '(\\S+)', useRegex: true }), '\\u$1', false)
+    expect(replaceAll('𐐨abc', upper).content).toBe('𐐀abc')
+    const lower = compileSearchReplace(query({ query: '(\\S+)', useRegex: true }), '\\l$1', false)
+    expect(replaceAll('𐐀ABC', lower).content).toBe('𐐨ABC')
+  })
+
   it('keeps matches on one line and preserves CRLF endings', () => {
     const compiled = compileSearchReplace(query({ query: 'a\\s+b', useRegex: true }), 'X', false)
     expect(replaceAll('a\r\nb a  b\r\n', compiled)).toEqual({
@@ -114,6 +121,11 @@ describe('buildCasePreservedReplacement', () => {
   it('applies to every match when enabled', () => {
     const compiled = compileSearchReplace(query({ query: 'foo' }), 'bar', true)
     expect(replaceAll('foo Foo FOO', compiled).content).toBe('bar Bar BAR')
+  })
+
+  it('preserves case for astral first characters', () => {
+    expect(buildCasePreservedReplacement('𐐀abc', 'xyz')).toBe('Xyz')
+    expect(buildCasePreservedReplacement('𐐨ABC', 'xyz')).toBe('xyz')
   })
 })
 

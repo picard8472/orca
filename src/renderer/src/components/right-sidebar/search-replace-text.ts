@@ -106,8 +106,9 @@ function applyCaseOps(value: string, ops: readonly CaseOp[]): string {
     } else if (op === 'L') {
       result = result.toLowerCase()
     } else if (result) {
-      const first = op === 'u' ? result[0].toUpperCase() : result[0].toLowerCase()
-      result = first + result.slice(1)
+      const head = String.fromCodePoint(result.codePointAt(0) ?? 0)
+      const first = op === 'u' ? head.toUpperCase() : head.toLowerCase()
+      result = first + result.slice(head.length)
     }
   }
   return result
@@ -123,11 +124,13 @@ function preserveSegmentCase(matched: string, replacement: string): string {
   if (matched.toLowerCase() === matched) {
     return replacement.toLowerCase()
   }
-  const first = matched[0]
-  if (first.toUpperCase() === first && first.toLowerCase() !== first) {
-    return replacement[0].toUpperCase() + replacement.slice(1)
+  // Why: code-point heads keep `\u`/`\l` working for astral cased scripts (e.g. Deseret).
+  const matchedHead = String.fromCodePoint(matched.codePointAt(0) ?? 0)
+  const replacementHead = String.fromCodePoint(replacement.codePointAt(0) ?? 0)
+  if (matchedHead.toUpperCase() === matchedHead && matchedHead.toLowerCase() !== matchedHead) {
+    return replacementHead.toUpperCase() + replacement.slice(replacementHead.length)
   }
-  return replacement[0].toLowerCase() + replacement.slice(1)
+  return replacementHead.toLowerCase() + replacement.slice(replacementHead.length)
 }
 
 /** Mirrors VS Code's Preserve Case: match casing, per `-`/`_` segment when both sides split alike. */
